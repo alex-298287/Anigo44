@@ -418,15 +418,16 @@ def get_source(link_id):
                     "Origin": embed_base
                 }
                 
-                try:
-                    _with_retries(
-                        cf_session.get,
-                        url,
-                        headers={"User-Agent": media_headers["User-Agent"]},
-                        timeout=(CONNECT_TIMEOUT, 10)
-                    )
-                except:
-                    pass
+                # Skip backend-side hit to prevent IP-binding on Vercel
+                # try:
+                #     _with_retries(
+                #         cf_session.get,
+                #         url,
+                #         headers={"User-Agent": media_headers["User-Agent"]},
+                #         timeout=(CONNECT_TIMEOUT, 10)
+                #     )
+                # except:
+                #     pass
                 
                 source_req = _with_retries(cf_session.get, resolve_url, headers=media_headers)
                 source_data = source_req.json()
