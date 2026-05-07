@@ -565,28 +565,23 @@ def proxy_embed():
     for m_old, m_new in MIRRORS.items():
         if m_old in target_url:
             urls_to_try.append(target_url.replace(m_old, m_new))
-            break
-        elif m_new in target_url:
-            # Also try the other way around
-            for k, v in MIRRORS.items():
-                if v == m_new and k not in target_url:
-                    urls_to_try.append(target_url.replace(m_new, k))
     
     last_error = ""
     for url in urls_to_try:
+        # Use Google as Referer to look more like a search engine bot or natural click
         headers = {
             "User-Agent": DEFAULT_UA,
-            "Referer": "https://anigo.to/"
+            "Referer": "https://www.google.com/"
         }
         
         try:
             r = cf_session.get(url, headers=headers, timeout=10)
+            # If we get a challenge or block, don't just fail, try the next
             if r.status_code != 200 or "just a moment" in r.text.lower() or "security verification" in r.text.lower():
-                last_error = f"Status {r.status_code} or Challenge detected on {url}"
+                last_error = f"Block/Challenge on {url}"
                 continue
                 
             content = r.text
-            # Neutralization script to prevent SecurityError from history.replaceState
             neutralizer = """
             <script>
             (function() {
@@ -615,7 +610,10 @@ def proxy_embed():
             last_error = str(e)
             continue
             
-    return f"Proxy Error: {last_error}. All mirrors failed.", 500
+    # Final Fallback: If everything fails, REDIRECT the user's browser directly to the mirror
+    # This might bypass the IP block because it uses the User's IP, not Vercel's.
+    final_fallback = target_url.replace("megaup.nl", "megacloud.tv")
+    return app.make_response(f"<html><head><meta http-equiv='refresh' content='0;url={final_fallback}'></head><body>Redirecting to server...</body></html>")
 
 
 if __name__ == "__main__":
