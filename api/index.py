@@ -7,7 +7,7 @@ import logging
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from curl_cffi import requests
 
@@ -624,6 +624,15 @@ def proxy_embed():
         
     return app.make_response(f"<html><head><meta http-equiv='refresh' content='0;url={final_fallback}'></head><body>Redirecting to server...</body></html>")
 
+
+# Serve Frontend in Production (for Docker/VPS)
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_frontend(path):
+    dist_dir = os.path.abspath("frontend/dist")
+    if path != "" and os.path.exists(os.path.join(dist_dir, path)):
+        return send_from_directory(dist_dir, path)
+    return send_from_directory(dist_dir, "index.html")
 
 if __name__ == "__main__":
     logger.info("Starting Anigo Bypass API on Port 5002...")
