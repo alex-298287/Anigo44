@@ -1,0 +1,12 @@
+node_modules
+frontend/node_modules
+dist
+frontend/dist
+.git
+.vercel
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+cache_anigo_bypass.json
