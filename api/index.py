@@ -129,13 +129,10 @@ import random
 selected_browser = random.choice(BROWSER_MODELS)
 cf_session = requests.Session(impersonate=selected_browser)
 
-# Mirror domains for swapping if one is blocked
+# Mirror domains for swapping
 MIRRORS = {
-    "megaup.nl": "megacloud.tv",
-    "megaup.live": "megacloud.tv",
-    "rabbitstream.net": "megacloud.tv",
-    "dokicloud.one": "megacloud.tv",
-    "cloudemb.com": "megacloud.tv"
+    "megaup.nl": "megaup.live",
+    "megaup.live": "megaup.nl"
 }
 
 def _with_retries(method, url, **kwargs):
@@ -612,7 +609,11 @@ def proxy_embed():
             
     # Final Fallback: If everything fails, REDIRECT the user's browser directly to the mirror
     # This might bypass the IP block because it uses the User's IP, not Vercel's.
-    final_fallback = target_url.replace("megaup.nl", "megacloud.tv")
+    if "megaup.nl" in target_url:
+        final_fallback = target_url.replace("megaup.nl", "megaup.live")
+    else:
+        final_fallback = target_url.replace("megaup.live", "megaup.nl")
+        
     return app.make_response(f"<html><head><meta http-equiv='refresh' content='0;url={final_fallback}'></head><body>Redirecting to server...</body></html>")
 
 
