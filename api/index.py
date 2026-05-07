@@ -558,12 +558,27 @@ def proxy_embed():
         r = cf_session.get(target_url, headers=headers, timeout=10)
         content = r.text
         
-        # Inject <base> tag so relative assets (CSS/JS) work
+        # Neutralization script to prevent SecurityError from history.replaceState
+        neutralizer = """
+        <script>
+        (function() {
+            const noop = () => {};
+            try {
+                window.history.pushState = noop;
+                window.history.replaceState = noop;
+                // Also prevent top-level navigation attempts
+                window.top = window.self;
+            } catch (e) {}
+        })();
+        </script>
+        """
+        
+        # Inject <base> tag and neutralizer so relative assets work and JS doesn't crash
         base_url = target_url.rsplit('/', 1)[0] + '/'
         if '<head>' in content:
-            content = content.replace('<head>', f'<head><base href="{base_url}">')
+            content = content.replace('<head>', f'<head>{neutralizer}<base href="{base_url}">')
         else:
-            content = f'<base href="{base_url}">' + content
+            content = f'{neutralizer}<base href="{base_url}">' + content
             
         response = app.make_response(content)
         response.headers["Content-Type"] = "text/html"
