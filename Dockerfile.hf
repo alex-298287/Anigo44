@@ -1,0 +1,34 @@
+# --- Hugging Face Spaces Dockerfile ---
+FROM python:3.9-slim
+
+# Create a non-root user for security (HF requirement)
+RUN useradd -m -u 1000 user
+USER user
+ENV PATH="/home/user/.local/bin:${PATH}"
+
+WORKDIR /app
+
+# Install system dependencies
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+USER user
+
+# Copy backend requirements and install
+COPY --chown=user api/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install gunicorn
+
+# Copy backend code
+COPY --chown=user api/ ./api/
+
+# Set Environment Variables
+ENV FLASK_APP=api/index.py
+ENV PYTHONUNBUFFERED=1
+
+# Hugging Face expects port 7860
+EXPOSE 7860
+
+# Start with Gunicorn on port 7860
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "api.index:app", "--workers", "4", "--timeout", "120"]
