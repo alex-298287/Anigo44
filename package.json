@@ -1,19 +1,13 @@
 {
-  "name": "anigo-scraper-vercel",
+  "name": "anigo-scraper-monorepo",
   "version": "1.0.0",
-  "description": "Anigo Scraper with Vercel and Local support",
+  "private": true,
   "scripts": {
-    "build": "echo 'Static build complete'",
-    "api": "python api/index.py",
-    "dev": "python -m http.server 8000",
-    "all": "concurrently \"npm run api\" \"npm run dev\"",
-    "start": "npm run all",
-    "install-python": "pip install -r requirements.txt"
+    "build": "cd frontend && npm install && npm run build",
+    "dev": "concurrently \"python api/index.py\" \"cd frontend && npm run dev\"",
+    "install-all": "pip install -r backend/requirements.txt && cd frontend && npm install"
   },
-  "keywords": [],
-  "author": "Zayrix-bit",
-  "license": "ISC",
-  "dependencies": {
+  "devDependencies": {
     "concurrently": "^8.2.2"
   }
 }

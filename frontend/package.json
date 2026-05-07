@@ -1,0 +1,23 @@
+{
+  "name": "anigo-scraper-vercel",
+  "version": "1.0.0",
+  "description": "Anigo Scraper with Vercel and Local support",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "api": "python api/index.py",
+    "all": "concurrently \"npm run api\" \"npm run dev\"",
+    "start": "npm run all",
+    "install-python": "pip install -r requirements.txt"
+  },
+  "keywords": [],
+  "author": "Zayrix-bit",
+  "license": "ISC",
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "devDependencies": {
+    "vite": "^6.4.2"
+  }
+}

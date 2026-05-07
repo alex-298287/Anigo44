@@ -12,10 +12,9 @@ start "Anigo API" cmd /k "python api/index.py"
 :: Wait a moment for API to warm up
 timeout /t 2 >nul
 
-:: Start Frontend Web Server
-echo [2/2] Starting Frontend on http://localhost:8000...
+:: Start Frontend (Vite)
+echo [2/2] Starting Frontend (Vite) on http://localhost:5173...
 echo.
-echo TIP: Close the windows to stop the servers.
-python -m http.server 8000
+cd frontend && npm run dev
 
 pause
