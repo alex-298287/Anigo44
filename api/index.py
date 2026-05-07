@@ -429,23 +429,31 @@ def get_source(link_id):
                 # except:
                 #     pass
                 
-                source_req = _with_retries(cf_session.get, resolve_url, headers=media_headers)
-                source_data = source_req.json()
+                # We have the provider URL! 
+                # On Vercel, the next step (fetching sources) often fails due to IP blocks.
+                # Since we use an iframe, we can return the provider URL immediately.
                 
-                encrypted_media = source_data.get("result", "")
-                if encrypted_media:
-                    mega_providers = ["megacloud.tv", "megaup.nl", "megaup.live", "rabbitstream.net", "dokicloud.one", "cloudemb.com"]
-                    mega = any(p in url for p in mega_providers)
+                # Create a placeholder for source_data in case the fetch fails
+                source_data = {"result": ""}
+                try:
+                    source_req = _with_retries(cf_session.get, resolve_url, headers=media_headers)
+                    source_data = source_req.json()
                     
-                    dec_sources = decode_token(encrypted_media, mega=mega)
-                    
-                    if isinstance(dec_sources, dict):
-                        source_data["sources"] = dec_sources.get("sources", [])
-                        source_data["tracks"] = dec_sources.get("tracks", [])
-                        source_data["download"] = dec_sources.get("download", "")
-                    else:
-                        source_data["sources"] = dec_sources
-                
+                    encrypted_media = source_data.get("result", "")
+                    if encrypted_media:
+                        mega_providers = ["megacloud.tv", "megaup.nl", "megaup.live", "rabbitstream.net", "dokicloud.one", "cloudemb.com"]
+                        mega = any(p in url for p in mega_providers)
+                        dec_sources = decode_token(encrypted_media, mega=mega)
+                        
+                        if isinstance(dec_sources, dict):
+                            source_data["sources"] = dec_sources.get("sources", [])
+                            source_data["tracks"] = dec_sources.get("tracks", [])
+                            source_data["download"] = dec_sources.get("download", "")
+                        else:
+                            source_data["sources"] = dec_sources
+                except Exception as e:
+                    logger.warning(f"Source resolution failed (likely IP block), but returning provider URL: {e}")
+
                 return {
                     "success": True,
                     "link_id": link_id,
