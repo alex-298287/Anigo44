@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "public": true,
+  "name": "anigo-scraper-frontend",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "cleanUrls": true
+}
