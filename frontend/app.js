@@ -1,6 +1,8 @@
+// --- Configuration ---
+const PRODUCTION_BACKEND_URL = "/api"; // Change this to your Docker URL (e.g., "https://api.jeevankart.in/api")
 const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" 
     ? "http://localhost:5002/api" 
-    : "/api";
+    : PRODUCTION_BACKEND_URL;
 let currentAnime = null;
 
 // DOM Elements
