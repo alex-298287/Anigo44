@@ -123,8 +123,20 @@ RATE_LIMIT_WINDOW_SECONDS = 60
 RATE_LIMIT_MAX_REQUESTS = 60
 ip_hits = defaultdict(deque)
 
-BROWSER = "chrome110"
-cf_session = requests.Session(impersonate=BROWSER)
+# --- Stealth Configuration ---
+BROWSER_MODELS = ["chrome110", "chrome120", "safari15_5", "edge101"]
+import random
+selected_browser = random.choice(BROWSER_MODELS)
+cf_session = requests.Session(impersonate=selected_browser)
+
+# Mirror domains for swapping if one is blocked
+MIRRORS = {
+    "megaup.nl": "megacloud.tv",
+    "megaup.live": "megacloud.tv",
+    "rabbitstream.net": "megacloud.tv",
+    "dokicloud.one": "megacloud.tv",
+    "cloudemb.com": "megacloud.tv"
+}
 
 def _with_retries(method, url, **kwargs):
     last_err = None
@@ -548,46 +560,62 @@ def proxy_embed():
     if not target_url:
         return "Missing URL", 400
     
-    headers = {
-        "User-Agent": DEFAULT_UA,
-        "Referer": "https://anigo.to/"
-    }
+    # Try original and then mirrors
+    urls_to_try = [target_url]
+    for m_old, m_new in MIRRORS.items():
+        if m_old in target_url:
+            urls_to_try.append(target_url.replace(m_old, m_new))
+            break
+        elif m_new in target_url:
+            # Also try the other way around
+            for k, v in MIRRORS.items():
+                if v == m_new and k not in target_url:
+                    urls_to_try.append(target_url.replace(m_new, k))
     
-    try:
-        # Use simple requests or cf_session
-        r = cf_session.get(target_url, headers=headers, timeout=10)
-        content = r.text
+    last_error = ""
+    for url in urls_to_try:
+        headers = {
+            "User-Agent": DEFAULT_UA,
+            "Referer": "https://anigo.to/"
+        }
         
-        # Neutralization script to prevent SecurityError from history.replaceState
-        neutralizer = """
-        <script>
-        (function() {
-            const noop = () => {};
-            try {
-                window.history.pushState = noop;
-                window.history.replaceState = noop;
-                // Also prevent top-level navigation attempts
-                window.top = window.self;
-            } catch (e) {}
-        })();
-        </script>
-        """
-        
-        # Inject <base> tag and neutralizer so relative assets work and JS doesn't crash
-        base_url = target_url.rsplit('/', 1)[0] + '/'
-        if '<head>' in content:
-            content = content.replace('<head>', f'<head>{neutralizer}<base href="{base_url}">')
-        else:
-            content = f'{neutralizer}<base href="{base_url}">' + content
+        try:
+            r = cf_session.get(url, headers=headers, timeout=10)
+            if r.status_code != 200 or "just a moment" in r.text.lower() or "security verification" in r.text.lower():
+                last_error = f"Status {r.status_code} or Challenge detected on {url}"
+                continue
+                
+            content = r.text
+            # Neutralization script to prevent SecurityError from history.replaceState
+            neutralizer = """
+            <script>
+            (function() {
+                const noop = () => {};
+                try {
+                    window.history.pushState = noop;
+                    window.history.replaceState = noop;
+                    window.top = window.self;
+                } catch (e) {}
+            })();
+            </script>
+            """
             
-        response = app.make_response(content)
-        response.headers["Content-Type"] = "text/html"
-        # Strip anti-iframe headers
-        response.headers.pop("X-Frame-Options", None)
-        response.headers.pop("Content-Security-Policy", None)
-        return response
-    except Exception as e:
-        return f"Proxy Error: {str(e)}", 500
+            base_url = url.rsplit('/', 1)[0] + '/'
+            if '<head>' in content:
+                content = content.replace('<head>', f'<head>{neutralizer}<base href="{base_url}">')
+            else:
+                content = f'{neutralizer}<base href="{base_url}">' + content
+                
+            response = app.make_response(content)
+            response.headers["Content-Type"] = "text/html"
+            response.headers.pop("X-Frame-Options", None)
+            response.headers.pop("Content-Security-Policy", None)
+            return response
+        except Exception as e:
+            last_error = str(e)
+            continue
+            
+    return f"Proxy Error: {last_error}. All mirrors failed.", 500
 
 
 if __name__ == "__main__":
